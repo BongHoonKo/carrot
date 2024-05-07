@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.ping {
+    @apply size-6 bg-red-500 rounded-full absolute animate-ping;
+}
+
+@layer base {
+    a { 
+        @apply text-orange-500 text-center;
+    }
+}
+
+@layer components {
+    .primary-btn {
+        @apply w-full bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-400 transition-colors;
+    }
+}
