@@ -12,30 +12,30 @@ const checkUsername = (username:string) =>
 const checkPassword = ({ password, confirm_password } : { password:string, confirm_password:string }) => 
         password === confirm_password;
 
-const checkUniqueUsername = async (username:string) => {
-    const user = await db.user.findUnique({
-        where : {
-            username,
-        }, select : {
-            id : true
-        }
-    });
+// const checkUniqueUsername = async (username:string) => {
+//     const user = await db.user.findUnique({
+//         where : {
+//             username,
+//         }, select : {
+//             id : true
+//         }
+//     });
 
-    return !Boolean(user);
-}
+//     return !Boolean(user);
+// }
 
-const checkUniqueEmail = async (email:string) => {
-    const user = await db.user.findUnique({
-        where : {
-            email,
-        },
-        select : {
-            id : true
-        }
-    });
+// const checkUniqueEmail = async (email:string) => {
+//     const user = await db.user.findUnique({
+//         where : {
+//             email,
+//         },
+//         select : {
+//             id : true
+//         }
+//     });
 
-    return !Boolean(user);
-}
+//     return !Boolean(user);
+// }
 
 // 여기에 선언되면 기본이 required => 선택으로 바꾸고 싶으면 .optional() 
 // refine(username => 첫 arg가 true 이면 문제 없음, false이면 두번째 arg에 있는 문구를 error로 출력, 'error msg');
@@ -46,13 +46,49 @@ const formSchema = z.object({
     }).min(5, "너무 짧다").max(10, "너무 길다").toLowerCase().trim()
     //.transform(username => `❤️${username}❤️`) // 제출이 될때 무조건 해당 text로 변환
     .refine(username => checkUsername(username), "potato는 유효하지 않습니다.")
-    .refine(checkUniqueUsername, "This username is already taken.")
+    // .refine(checkUniqueUsername, "This username is already taken.")
 
-    , email : z.string().email().trim().toLowerCase().refine(checkUniqueEmail, "Thie email is alreay used.")
+    , email : z.string().email().trim().toLowerCase()//.refine(checkUniqueEmail, "Thie email is alreay used.")
 
     , password : z.string().min(PASSWORD_MIN_LENGTH)
     //.regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR)
     , confirm_password : z.string().min(PASSWORD_MIN_LENGTH)
+}).superRefine(async (data, ctx) => {
+    const user = await db.user.findUnique({
+        where : {
+            username : data.username
+        }, select : { id : true }
+    });
+
+    if(user) {
+        ctx.addIssue({
+            code : 'custom'
+            , message : 'This username is alraedy used.'
+            , path : ['username']
+            , fatal : true
+        });
+        return z.NEVER;
+
+        // fatal : true 및 return z.NEVER;를 설정하면 이 뒤에 나오는 refine은 실행 X
+    }
+}).superRefine(async ({email}, ctx) => {
+    const user = await db.user.findUnique({
+        where : {
+            email
+        }, select : { id : true }
+    });
+
+    if(user) {
+        ctx.addIssue({
+            code : 'custom'
+            , message : 'This email is alraedy used.'
+            , path : ['email']
+            , fatal : true
+        });
+        return z.NEVER;
+
+        // fatal : true 및 return z.NEVER;를 설정하면 이 뒤에 나오는 refine은 실행 X
+    }
 }).refine(checkPassword, {
     message : '비밀번호가 서로 일치하지 않습니다.'
     , path: ["confirm_password"]
@@ -82,7 +118,7 @@ export async function createAccount(prevState:any, formData:FormData) {
         // redirect home
         const hashedPassword = await bcrypt.hash(result.data.password, 12);
         console.log('hashedPassword ==> ', hashedPassword);
-
+{}
         const user = await db.user.create({
             data : {
                 username : result.data.username

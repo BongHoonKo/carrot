@@ -1,7 +1,6 @@
 "use server";
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { PASSWORD_MIN_LENGTH, PASSWORD_REGEX, PASSWORD_REGEX_ERROR } from '@/lib/constants';
 import db from '@/lib/db';
 import bcrypt from 'bcrypt';
 import getSession from '@/lib/session';
@@ -55,6 +54,7 @@ export async function handleLogin(prevState : any, formData: FormData) {
         if(ok) {
             const session = await getSession();
             session.id = user!.id;
+            await session.save();
             redirect('/profile');
         } else {
             return {
